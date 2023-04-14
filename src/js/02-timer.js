@@ -1,5 +1,6 @@
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
+import Notiflix from 'notiflix';
 
 const startBtnEl = document.querySelector('button[data-start]');
 const inputEl = document.querySelector('input[type="text"]');
@@ -8,18 +9,17 @@ const hoursValueEl = document.querySelector('[data-hours]');
 const minutesValueEl = document.querySelector('[data-minutes]');
 const secondsValueEl = document.querySelector('[data-seconds]');
 
+let timerId = null;
 startBtnEl.disabled = true;
-const todayDate = new Date();
 
 const options = {
   enableTime: true,
   time_24hr: true,
-  defaultDate: todayDate,
+  defaultDate: new Date(),
   minuteIncrement: 1,
   onClose(selectedDates) {
-    // console.log(selectedDates[0]);
-    if (selectedDates[0] < todayDate) {
-      window.alert('Please choose a date in the future');
+    if (selectedDates[0] < new Date()) {
+      Notiflix.Notify.failure('Please choose a date in the future');
     } else {
       startBtnEl.disabled = false;
     }
@@ -27,15 +27,6 @@ const options = {
 };
 
 const fp = flatpickr(inputEl, options); // flatpickr
-
-function getMiliseconds() {
-  const selectedDate = inputEl.value;
-  const selectedDateMs = new Date(selectedDate).getTime();
-  const todayDateMs = new Date(todayDate).getTime();
-  const timeLeft = selectedDateMs - todayDateMs;
-  console.log(timeLeft);
-  return timeLeft;
-}
 
 function convertMs(ms) {
   // Number of milliseconds per unit of time
@@ -56,11 +47,26 @@ function convertMs(ms) {
   return { days, hours, minutes, seconds };
 }
 
-startBtnEl.addEventListener('click', () => {
-  console.log('clicked');
-  const convertedDate = convertMs(getMiliseconds());
-  daysValueEl.textContent = `${convertedDate.days}`;
-  hoursValueEl.textContent = `${convertedDate.hours}`;
-  minutesValueEl.textContent = `${convertedDate.minutes}`;
-  secondsValueEl.textContent = `${convertedDate.seconds}`;
-});
+function addLeadingZero(value) {
+  if (value.toString().length === 1) {
+    return value.toString().padStart(2, '0');
+  } else {
+    return value;
+  }
+}
+
+const getTime = () => {
+  timerId = setInterval(() => {
+    const selectedDate = inputEl.value;
+    const selectedDateMs = new Date(selectedDate).getTime();
+    const todayDateMs = new Date().getTime();
+    const timeLeft = selectedDateMs - todayDateMs;
+    const convertedDate = convertMs(timeLeft);
+    daysValueEl.textContent = `${addLeadingZero(convertedDate.days)}`;
+    hoursValueEl.textContent = `${addLeadingZero(convertedDate.hours)}`;
+    minutesValueEl.textContent = `${addLeadingZero(convertedDate.minutes)}`;
+    secondsValueEl.textContent = `${addLeadingZero(convertedDate.seconds)}`;
+  }, 1000);
+};
+
+startBtnEl.addEventListener('click', getTime);
